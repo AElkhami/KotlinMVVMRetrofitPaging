@@ -1,6 +1,5 @@
 package com.example.kotlinretrofitmvvm.logic
 
-import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.ViewModel
 import androidx.paging.LivePagedListBuilder
@@ -41,7 +40,6 @@ class FlickrSearchViewModel : ViewModel() {
     override fun onCleared() {
         super.onCleared()
         dataSourceFactory?.getCompositeDisposable()?.dispose()
-        Log.i("disposableTag","items are disposed")
     }
 
 }

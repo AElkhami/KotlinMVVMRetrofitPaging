@@ -28,7 +28,7 @@ class PhotoDataSource(private val searchTerm: String) : PageKeyedDataSource<Int,
 
         val onLoadInitialDisposable = request.subscribe { response ->
 
-            if (response?.photos?.total?.toInt() == 0) {
+            if (response?.photos?.total == 0) {
                 callback.onResult(
                     response.photos.photo!!,
                     0, 0, null, null
@@ -39,13 +39,14 @@ class PhotoDataSource(private val searchTerm: String) : PageKeyedDataSource<Int,
                 callback.onResult(
                     photo,
                     response.photos.page?.times(response.photos.perpage!!)!!,
-                    response.photos.total?.toInt()!!,
+                    response.photos.total!!,
                     null,
                     response.photos.page + 1
                 )
             }
 
         }
+
         compositeDisposable.add(onLoadInitialDisposable)
     }
 

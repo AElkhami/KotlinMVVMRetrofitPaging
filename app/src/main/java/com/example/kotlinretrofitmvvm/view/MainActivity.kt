@@ -6,15 +6,14 @@ import android.text.Editable
 import android.text.TextWatcher
 import android.view.KeyEvent
 import android.view.View
-import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.ArrayAdapter
-import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
 import androidx.paging.PagedList
 import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.example.kotlinretrofitmvvm.R
 import com.example.kotlinretrofitmvvm.data.SharedPrefs
 import com.example.kotlinretrofitmvvm.data.models.Photo
@@ -25,7 +24,7 @@ import kotlinx.android.synthetic.main.activity_main.*
 class MainActivity : AppCompatActivity() {
 
     private lateinit var viewModel: FlickrSearchViewModel
-    private lateinit var mAdapter: MainActivityRecyclerAdapter
+    private lateinit var mainAdapter: MainActivityRecyclerAdapter
     private var searchHistory: SharedPrefs? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -38,11 +37,16 @@ class MainActivity : AppCompatActivity() {
             .of(this@MainActivity)
             .get(FlickrSearchViewModel::class.java)
 
-        setupRecyclerView()
+        setupRecyclerAdapter()
 
         if(searchHistory?.getSavedQueries() != null){
-            setupHistoryAdapter()
+            setupSearchHistoryAdapter()
         }
+
+        setUpListeners()
+    }
+
+    private fun setUpListeners() {
 
         searchButton.setOnClickListener{
             getSearchResults(searchTextView.text.toString())
@@ -85,12 +89,61 @@ class MainActivity : AppCompatActivity() {
             searchTextView.setText("")
             flickrPhotosListView.visibility = View.GONE
             emptyListTextView.visibility = View.VISIBLE
+            progressBar.visibility = View.GONE
 
-            mAdapter.submitList(null)
+            mainAdapter.submitList(null)
+            mainAdapter.currentList?.dataSource?.invalidate()
         }
     }
 
-    private fun setupHistoryAdapter() {
+    //Variable created separatley to prevent memory leaks
+    private val observerPhotos = Observer<PagedList<Photo>> {
+
+        val photosList = it
+
+        if (!photosList.isNullOrEmpty()) {
+            mainAdapter.submitList(photosList)
+
+            flickrPhotosListView.visibility = View.VISIBLE
+            emptyListTextView.visibility = View.GONE
+            progressBar.visibility = View.GONE
+            reachBottomProgressBar.visibility = View.GONE
+        } else {
+            flickrPhotosListView.visibility = View.GONE
+            emptyListTextView.visibility = View.VISIBLE
+            progressBar.visibility = View.GONE
+            emptyListTextView.text = getString(R.string.list_is_empty_or_null)
+        }
+
+        mainAdapter.notifyDataSetChanged()
+    }
+
+    private fun setupRecyclerAdapter() {
+        mainAdapter = MainActivityRecyclerAdapter()
+
+        flickrPhotosListView.apply {
+            layoutManager = GridLayoutManager(this@MainActivity, 2)
+            adapter = mainAdapter
+        }
+
+        flickrPhotosListView.addOnScrollListener(object: RecyclerView.OnScrollListener(){
+
+            override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
+                super.onScrollStateChanged(recyclerView, newState)
+
+                if(!recyclerView.canScrollVertically(1)){
+                    reachBottomProgressBar.visibility = View.VISIBLE
+                }else{
+                    reachBottomProgressBar.visibility = View.GONE
+                }
+
+            }
+        })
+
+        mainAdapter.notifyDataSetChanged()
+    }
+
+    private fun setupSearchHistoryAdapter() {
         val searchHistoryAdapter = ArrayAdapter(this,
             android.R.layout.simple_list_item_1,
             searchHistory?.getSavedQueries()!!.toList())
@@ -106,8 +159,8 @@ class MainActivity : AppCompatActivity() {
         emptyListTextView.visibility = View.GONE
         flickrPhotosListView.visibility = View.GONE
 
-        mAdapter.submitList(null)
-        mAdapter.currentList?.dataSource?.invalidate()
+        mainAdapter.submitList(null)
+        mainAdapter.currentList?.dataSource?.invalidate()
 
         flickrPhotosListView.postDelayed({
             flickrPhotosListView.layoutManager?.scrollToPosition(0)
@@ -120,7 +173,7 @@ class MainActivity : AppCompatActivity() {
             saveSearchQuery(query)
         }
 
-        mAdapter.notifyDataSetChanged()
+        mainAdapter.notifyDataSetChanged()
 
         hideKeyboard(this)
     }
@@ -138,39 +191,7 @@ class MainActivity : AppCompatActivity() {
             searchHistory?.saveQuery(appendedHistorySet)
         }
 
-        setupHistoryAdapter()
-    }
-
-    //for memory leaks
-    private val observerPhotos = Observer<PagedList<Photo>> {
-
-        val photosList = it
-
-        if (!photosList.isNullOrEmpty()) {
-            mAdapter.submitList(photosList)
-
-            flickrPhotosListView.visibility = View.VISIBLE
-            emptyListTextView.visibility = View.GONE
-            progressBar.visibility = View.GONE
-        } else {
-            flickrPhotosListView.visibility = View.GONE
-            emptyListTextView.visibility = View.VISIBLE
-            progressBar.visibility = View.GONE
-            emptyListTextView.text = getString(R.string.list_is_empty_or_null)
-        }
-
-        mAdapter.notifyDataSetChanged()
-    }
-
-    private fun setupRecyclerView() {
-        mAdapter = MainActivityRecyclerAdapter()
-
-        flickrPhotosListView.apply {
-            layoutManager = GridLayoutManager(this@MainActivity, 2)
-            adapter = mAdapter
-        }
-
-        mAdapter.notifyDataSetChanged()
+        setupSearchHistoryAdapter()
     }
 
     private fun hideKeyboard(activity: Activity) {

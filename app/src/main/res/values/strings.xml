@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">Flickr Image Search</string>
+    <string name="empty_photo_holder">Empty photo holder</string>
+    <string name="search">Search</string>
+    <string name="empty_images_list_text">Use search bar to find images on Flickr</string>
+    <string name="clear_text">Clear Text</string>
+    <string name="list_is_empty_or_null">List is empty or null</string>
+</resources>
